@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify
 from database import db
 from models.meal import Meal
-from datetime import datetime
 
 app = Flask(__name__) #Cria app atraves do Flask
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///meals.db" #Cria o banco de dados
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://user:password@localhost/daily_diet" #Cria o banco de dados
 
 db.init_app(app) #Inicializa o app
 
@@ -29,21 +28,20 @@ def createMeal():
 @app.route("/meal/<int:id_meal>", methods=["PUT"])
 def updateMeal(id_meal):
     data = request.json
-
     meal = Meal.query.get(id_meal)
 
-    if meal and data.get("name") and data.get("date_time") and data.get("in_diet"):
-
-        meal.name = data.get("name")
-        meal.description = data.get("description")
-        meal.dateTime = data.get("date_time")
-        meal.inDiet = data.get("in_diet")
+    # Verifica se a refeição existe e se todos os campos estão presentes no JSON
+    if meal and all(key in data for key in ["name", "description", "date_time", "in_diet"]):
+        meal.name = data["name"]
+        meal.description = data["description"]
+        meal.dateTime = data["date_time"]
+        meal.inDiet = data["in_diet"]  # Agora aceita False sem problemas
 
         db.session.commit()
 
-        return jsonify({"message": f"Refeição: {meal.name} atualizada com sucesso."})
+        return jsonify({"message": f"Refeição: [{meal.name}] atualizada com sucesso."})
     
-    return jsonify({"message": "Refeição não encontrada."}), 404
+    return jsonify({"message": "Refeição não encontrada ou dados inválidos."}), 404
 
 @app.route("/meals", methods=["GET"])
 def getMeals():
